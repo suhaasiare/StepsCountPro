@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>StepsCountProoo</title>
+
+<style>
+:root{
+  --accent:#22f3c6;
+  --bg:#020617;
+  --glass:rgba(255,255,255,.08);
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI}
+body{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:radial-gradient(circle at top,#0f172a,#020617);
+  color:#fff;
+}
+.app{
+  width:380px;
+  padding:26px;
+  border-radius:28px;
+  background:var(--glass);
+  backdrop-filter:blur(18px);
+  box-shadow:0 40px 80px rgba(0,0,0,.6);
+}
+h1{text-align:center;margin-bottom:18px}
+.stats{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:16px;
+}
+.card{
+  background:rgba(255,255,255,.1);
+  padding:14px;
+  border-radius:18px;
+  text-align:center;
+}
+.big{
+  font-size:34px;
+  font-weight:700;
+}
+small{opacity:.7}
+button{
+  width:100%;
+  margin-top:18px;
+  padding:14px;
+  border:none;
+  border-radius:18px;
+  font-weight:700;
+  cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),#38bdf8);
+  color:#000;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+<h1>StepsCountProoo</h1>
+
+<div class="card">
+  <div class="big" id="steps">0</div>
+  <small>Steps Today</small>
+</div>
+
+<div class="stats">
+  <div class="card">
+    <div class="big" id="distance">0.00</div>
+    <small>KM</small>
+  </div>
+  <div class="card">
+    <div class="big" id="calories">0</div>
+    <small>Calories</small>
+  </div>
+</div>
+
+<button onclick="resetAll()">Reset Today</button>
+</div>
+
+<script>
+/* ---------- CONFIG ---------- */
+const STEP_THRESHOLD = 1.2;      // sensitivity
+const STEP_DELAY = 350;          // ms debounce
+const STEP_LENGTH = 0.00078;     // km per step
+const CAL_PER_STEP = 0.04;
+
+/* ---------- STATE ---------- */
+let steps = +localStorage.getItem("steps") || 0;
+let calories = +localStorage.getItem("cal") || 0;
+let distance = +localStorage.getItem("dist") || 0;
+
+let lastMagnitude = 0;
+let lastStepTime = 0;
+
+/* ---------- UI ---------- */
+const stepsEl = document.getElementById("steps");
+const distEl  = document.getElementById("distance");
+const calEl   = document.getElementById("calories");
+
+function updateUI(){
+  stepsEl.textContent = steps;
+  distEl.textContent = distance.toFixed(2);
+  calEl.textContent = calories.toFixed(0);
+
+  localStorage.setItem("steps",steps);
+  localStorage.setItem("cal",calories);
+  localStorage.setItem("dist",distance);
+}
+
+/* ---------- ADVANCED STEP DETECTION ---------- */
+window.addEventListener("devicemotion", e=>{
+  if(!e.accelerationIncludingGravity) return;
+
+  const a = e.accelerationIncludingGravity;
+  const magnitude = Math.sqrt(a.x*a.x + a.y*a.y + a.z*a.z);
+
+  const delta = Math.abs(magnitude - lastMagnitude);
+  const now = Date.now();
+
+  if(delta > STEP_THRESHOLD && now - lastStepTime > STEP_DELAY){
+    steps++;
+    distance += STEP_LENGTH;
+    calories += CAL_PER_STEP;
+    lastStepTime = now;
+    updateUI();
+  }
+
+  lastMagnitude = magnitude;
+});
+
+/* ---------- DAILY RESET ---------- */
+function checkNewDay(){
+  const today = new Date().toDateString();
+  const savedDay = localStorage.getItem("day");
+  if(savedDay !== today){
+    steps = calories = distance = 0;
+    localStorage.setItem("day",today);
+    updateUI();
+  }
+}
+
+function resetAll(){
+  steps = calories = distance = 0;
+  updateUI();
+}
+
+/* ---------- INIT ---------- */
+checkNewDay();
+updateUI();
+</script>
+</body>
+</html>
